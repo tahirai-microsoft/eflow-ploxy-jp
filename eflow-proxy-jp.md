@@ -15,22 +15,46 @@
 
 ## 準備:
 
-1. Azure ポータルで IoT Edge デバイスの作成  
+1. Azure ポータル の Azure IoT Hub で IoT Edge デバイスの作成  
     接続文字列をコピーします  
-1. Windows 10 21H2 のインストール  
+1. Windows 10 November 2021 Update (21H2) のインストール  
+    https://www.microsoft.com/ja-jp/software-download/windows10/
+
+    作業PC または Windows 10 PC に動作確認用の Visual Studio Code / Storage Explorer をインストールします  
+    https://code.visualstudio.com/  
+    https://azure.microsoft.com/ja-jp/features/storage-explorer/  
+
+     > この段階で Hyper-V を有効にしておきます  
+     > Windows 10 PC 自体にも Proxy 設定を行います  
 
 1. EFLOW のインストール  
+    以下のコマンドを実行します  
+    ```Powershell
+    Set-ExecutionPolicy -ExecutionPolicy AllSigned -Force
+    ```
+    ```Powershell
+    $msiPath = $([io.Path]::Combine($env:TEMP, 'AzureIoTEdge.msi'))
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest "https://aka.ms/AzEFLOWMSI-CR-X64" -OutFile $msiPath
+    ```
+    ```Powershell
+    Start-Process -Wait msiexec -ArgumentList "/i","$([io.Path]::Combine($env:TEMP, 'AzureIoTEdge.msi'))","/qn"
+    ```
+
+    詳細は以下ページに記載があります  
+    https://docs.microsoft.com/ja-jp/azure/iot-edge/how-to-provision-single-device-linux-on-windows-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cpowershell
+
 
 1. 仮想スイッチの作成  
     Hyper-V マネージャーで **外部 - 仮想スイッチ** を作成します  
 
 1. EFLOW VM の作成  
     > IPv4 関連の項目は環境に合わせて変更ください  
-    ```
+    ```Powershell
     Deploy-Eflow -acceptEula Yes -acceptOptionalTelemetry No -cpuCount 2 -memoryInMB 4096 -vswitchName ExternalSwitch -vswitchType External -ip4Address 192.168.8.222 -ip4PrefixLength 24 -ip4GatewayAddress 192.168.8.1
     ```
 1. EFLOW VM に接続  
-    ```
+    ```Powershell
     Connect-EflowVm
     ```
     以下のコマンドを実行し、Proxy 経由でインターネット接続が可能なことを確認します  
@@ -59,7 +83,7 @@
     ```
 1. IoT Edge を設定 (Proxy 設定を含む)  
     テキストエディタ (以下では nano) で設定ファイルに記述を追加します  
-    ```
+    ```Bash:config.toml
     sudo nano /etc/aziot/config.toml
     ```
      > provisioning は コメントアウト(#) を削除、agent はファイルの最後に追記します  
