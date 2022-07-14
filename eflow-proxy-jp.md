@@ -8,24 +8,28 @@
 この手順では、以下のような環境において EFLOW 環境の構築を行うことを想定しています。  
 ![EFLOW 環境](./img/eflow-env.png 'EFLOW 環境')
 
-1. Windows 10 PC は Proxy 経由のみ インターネットに接続可
-1. Windows 10 PC は 1つ以上の LAN または Wi-Fi 接続を持つ
-1. Windows 10 PC と Proxy は HTTP で接続
-1. 作業用 PC は直接、または Proxy 経由でインターネットに接続可
+* Windows 10 PC は Proxy 経由のみ インターネットに接続可
+* Windows 10 PC は 1つ以上の LAN または Wi-Fi 接続を持つ
+* Windows 10 PC と Proxy は HTTP で接続
+* 作業用 PC は直接、または Proxy 経由でインターネットに接続可
 
 ## 準備:
 
 1. Azure ポータル の Azure IoT Hub で IoT Edge デバイスの作成  
-    接続文字列をコピーします  
+    プライマリ接続文字列 をコピーします  
+![Azure IoT Hub - IoT Edge](./img/eflow-iotedge-connection-string.png 'Azure IoT Hub - IoT Edge')
 1. Windows 10 November 2021 Update (21H2) のインストール  
     https://www.microsoft.com/ja-jp/software-download/windows10/
+
+    * この段階で Hyper-V を有効にしておきます  
+![Windows - Hyper-V](./img/eflow-win10-hyper-v.png 'Windows - Hyper-V')
+    * Windows 10 PC 自体にも Proxy 設定を行います  
+![Windows - Proxy](./img/eflow-win10-proxy.png 'Windows - Proxy')
 
     作業PC または Windows 10 PC に動作確認用の Visual Studio Code / Storage Explorer をインストールします  
     https://code.visualstudio.com/  
     https://azure.microsoft.com/ja-jp/features/storage-explorer/  
-
-     > この段階で Hyper-V を有効にしておきます  
-     > Windows 10 PC 自体にも Proxy 設定を行います  
+    Visual Studio Code は 拡張機能: Azure IoT Tools をインストールし、設定します  
 
 1. EFLOW のインストール  
     以下のコマンドを実行します  
@@ -46,12 +50,14 @@
 
 
 1. 仮想スイッチの作成  
-    Hyper-V マネージャーで **外部 - 仮想スイッチ** を作成します  
+    Hyper-V マネージャー で **仮想スイッチ - 外部** を作成します  
+![Windows - Hyper-V - vSwitch](./img/eflow-win10-hyper-v-vswitch.png 'Windows - Hyper-V - vSwitch')  
+    > 複数のネットワークアダプターがある場合はネットワークに接続されている方を選択します
 
 1. EFLOW VM の作成  
-    > IPv4 関連の項目は環境に合わせて変更ください  
+    > 仮想スイッチの名前、IPv4 関連の項目は環境に合わせて変更ください  
     ```Powershell
-    Deploy-Eflow -acceptEula Yes -acceptOptionalTelemetry No -cpuCount 2 -memoryInMB 4096 -vswitchName ExternalSwitch -vswitchType External -ip4Address 192.168.8.222 -ip4PrefixLength 24 -ip4GatewayAddress 192.168.8.1
+    Deploy-Eflow -acceptEula Yes -acceptOptionalTelemetry No -cpuCount 2 -memoryInMB 4096 -vswitchName extEFLOW -vswitchType External -ip4Address 192.168.8.222 -ip4PrefixLength 24 -ip4GatewayAddress 192.168.8.1
     ```
 1. EFLOW VM に接続  
     ```Powershell
@@ -83,13 +89,13 @@
     ```
 1. IoT Edge を設定 (Proxy 設定を含む)  
     テキストエディタ (以下では nano) で設定ファイルに記述を追加します  
-    ```Shell
+    ```
     sudo nano /etc/aziot/config.toml
     ```
      > provisioning は コメントアウト(#) を削除、agent はファイルの最後に追記します  
      > Proxy の設定は環境に合わせて変更ください (HTTPSのみ)  
      > コンテナーを事前に Pull するため、PullPolicy を Never としています  
-    ```
+    ```Toml
     [provisioning]
     source = "manual"
     connection_string = "(準備: で取得した文字列)"
@@ -129,7 +135,7 @@
     sudo iotedge system logs -- -f
     sudo iotedge list
     ```
-    IoT Hub がテレメトリを受け取れていることを確認します  
+    Azure IoT Hub が IoT Edge デバイスからテレメトリを受け取れていることを確認します  
 
 1. Azure ポータルで deployment を設定 (azure blob storage のデプロイ)  
 
