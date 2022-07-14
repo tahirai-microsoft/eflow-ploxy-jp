@@ -83,7 +83,7 @@
     ```
 1. IoT Edge を設定 (Proxy 設定を含む)  
     テキストエディタ (以下では nano) で設定ファイルに記述を追加します  
-    ```Bash:config.toml
+    ```Shell
     sudo nano /etc/aziot/config.toml
     ```
      > provisioning は コメントアウト(#) を削除、agent はファイルの最後に追記します  
