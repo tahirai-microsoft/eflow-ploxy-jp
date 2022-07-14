@@ -16,8 +16,10 @@
 ## 準備:
 
 1. Azure ポータル の Azure IoT Hub で IoT Edge デバイスの作成  
-    プライマリ接続文字列 をコピーします  
-![Azure IoT Hub - IoT Edge](./img/eflow-iotedge-connection-string.png 'Azure IoT Hub - IoT Edge')
+    IoT Edge デバイスの プライマリ接続文字列 をコピーします  
+![Azure IoT Hub - IoT Edge](./img/eflow-iotedge-connection-string.png 'Azure IoT Hub - IoT Edge')  
+    > ここで iothubowner のプライマリ接続文字列 をコピーしておくと、Visual Studio Code の設定が楽になります
+    > ![Azure IoT Hub](./img/eflow-iotedge-owner-connection-string.png 'Azure IoT Hub')  
 1. Windows 10 November 2021 Update (21H2) のインストール  
     https://www.microsoft.com/ja-jp/software-download/windows10/
 
@@ -29,7 +31,7 @@
     作業PC または Windows 10 PC に動作確認用の Visual Studio Code / Storage Explorer をインストールします  
     https://code.visualstudio.com/  
     https://azure.microsoft.com/ja-jp/features/storage-explorer/  
-    Visual Studio Code は 拡張機能: Azure IoT Tools をインストールし、設定します  
+    Visual Studio Code は 拡張機能: Azure IoT Tools をインストールします  
 
 1. EFLOW のインストール  
     以下のコマンドを実行します  
@@ -45,8 +47,8 @@
     Start-Process -Wait msiexec -ArgumentList "/i","$([io.Path]::Combine($env:TEMP, 'AzureIoTEdge.msi'))","/qn"
     ```
 
-    詳細は以下ページに記載があります  
-    https://docs.microsoft.com/ja-jp/azure/iot-edge/how-to-provision-single-device-linux-on-windows-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cpowershell
+    > 詳細は以下ページに記載があります  
+    > https://docs.microsoft.com/ja-jp/azure/iot-edge/how-to-provision-single-device-linux-on-windows-symmetric?view=iotedge-2020-11&tabs=azure-portal%2Cpowershell
 
 
 1. 仮想スイッチの作成  
@@ -57,13 +59,14 @@
 1. EFLOW VM の作成  
     > 仮想スイッチの名前、IPv4 関連の項目は環境に合わせて変更ください  
     ```Powershell
-    Deploy-Eflow -acceptEula Yes -acceptOptionalTelemetry No -cpuCount 2 -memoryInMB 4096 -vswitchName extEFLOW -vswitchType External -ip4Address 192.168.8.222 -ip4PrefixLength 24 -ip4GatewayAddress 192.168.8.1
+    Deploy-Eflow -acceptEula Yes -acceptOptionalTelemetry No -cpuCount 2 -memoryInMB 4096 -vswitchName ExtEFLOW -vswitchType External -ip4Address 192.168.8.222 -ip4PrefixLength 24 -ip4GatewayAddress 192.168.8.1
     ```
 1. EFLOW VM に接続  
     ```Powershell
     Connect-EflowVm
     ```
     以下のコマンドを実行し、Proxy 経由でインターネット接続が可能なことを確認します  
+     > Proxy の設定は環境に合わせて変更ください  
     ```
     curl -L -x http://192.168.8.199:3128 -o d4iot.zip https://github.com/tahirai-microsoft/Azure-Defender-for-IoT/zipball/master
     ```
@@ -82,10 +85,41 @@
     Environment="HTTPS_PROXY=http://192.168.8.199:3128/"
     Environment="HTTP_PROXY=http://192.168.8.199:3128/"
     ```
+    ```
+    sudo systemctl edit aziot-edged
+    ```
+     > Proxy の設定は環境に合わせて変更ください  
+     > HTTPS のみ設定します  
+    ```
+    [Service]
+    Environment=https_proxy=http://192.168.8.199:3128/
+    ```
+    ```
+    sudo systemctl edit aziot-identityd
+    ```
+     > Proxy の設定は環境に合わせて変更ください  
+     > HTTPS のみ設定します  
+    ```
+    [Service]
+    Environment=https_proxy=http://192.168.8.199:3128/
+    ```
     設定を反映します  
     ```
     sudo systemctl daemon-reload
     sudo systemctl restart docker
+    ```
+    利用する コンテナーを 事前に Pull します
+    ```
+    sudo docker pull mcr.microsoft.com/azureiotedge-agent:1.2
+    ```
+    ```
+    sudo docker pull mcr.microsoft.com/azureiotedge-hub:1.2
+    ```
+    ```  
+    sudo docker pull mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0
+    ```
+    ```  
+    sudo docker pull mcr.microsoft.com/azure-blob-storage:latest
     ```
 1. IoT Edge を設定 (Proxy 設定を含む)  
     テキストエディタ (以下では nano) で設定ファイルに記述を追加します  
@@ -98,8 +132,9 @@
     ```Toml
     [provisioning]
     source = "manual"
-    connection_string = "(準備: で取得した文字列)"
-
+    connection_string = "(準備: で取得したプライマリ接続文字列)"
+    ```
+    ```Toml
     [agent]
     name = "edgeAgent"
     type = "docker"
@@ -112,13 +147,6 @@
     "UpstreamProtocol" = "AmqpWs"
     "https_proxy" = "http://192.168.8.199:3128"
     ```
-    利用する コンテナーを 事前に Pull します
-    ```
-    sudo docker pull mcr.microsoft.com/azureiotedge-agent:1.2
-    sudo docker pull mcr.microsoft.com/azureiotedge-hub:1.2
-    sudo docker pull mcr.microsoft.com/azureiotedge-simulated-temperature-sensor:1.0
-    sudo docker pull mcr.microsoft.com/azure-blob-storage:latest
-    ```
     設定を反映します  
     ```
     sudo iotedge config apply
@@ -126,22 +154,41 @@
     ログ、及び モジュールリストを表示し、動作を確認します
     ```
     sudo iotedge system logs -- -f
+    ```
+    ```
     sudo iotedge list
     ```
 1. Azure ポータルで deployment を設定 (simulated temperature sensor のデプロイ)  
+    > それぞれ イメージのプルポリシー は なし に設定します (pull 済みのため)  
+    > Edge ハブ には Proxy の設定を追加します
+
+    ![Portal IoTEdge 1](./img/portal-iotedge-1.png 'Portal IoTEdge 1')  
+    ![Portal IoTEdge 2](./img/portal-iotedge-2.png 'Portal IoTEdge 2')  
+    ![Portal IoTEdge 3](./img/portal-iotedge-3.png 'Portal IoTEdge 3')  
 
     ログ、及び モジュールリストを表示し、動作を確認します
     ```
     sudo iotedge system logs -- -f
+    ```
+    ```
     sudo iotedge list
     ```
     Azure IoT Hub が IoT Edge デバイスからテレメトリを受け取れていることを確認します  
+    ![VSCode Monitor](./img/vscode-monitor.png 'VSCode Monitor')  
 
 1. Azure ポータルで deployment を設定 (azure blob storage のデプロイ)  
+    > Proxy の設定を追加します  
+
+    ![Portal Blob 1](./img/portal-iotedge-blob-1.png 'Portal Blob 1') 
+
+    > 詳細は以下ページに記載があります  
+    > https://docs.microsoft.com/ja-jp/azure/iot-edge/how-to-deploy-blob?view=iotedge-2020-11
 
     ログ、及び モジュールリストを表示し、動作を確認します
     ```
     sudo iotedge system logs -- -f
+    ```
+    ```
     sudo iotedge list
     ```
     Storage Explorer で Azure Blob Storage モジュールにアクセス出来ることを確認します  
