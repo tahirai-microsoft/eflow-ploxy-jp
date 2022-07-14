@@ -18,8 +18,6 @@
 1. Azure ポータル の Azure IoT Hub で IoT Edge デバイスの作成  
     IoT Edge デバイスの プライマリ接続文字列 をコピーします  
 ![Azure IoT Hub - IoT Edge](./img/eflow-iotedge-connection-string.png 'Azure IoT Hub - IoT Edge')  
-    > ここで iothubowner のプライマリ接続文字列 をコピーしておくと、Visual Studio Code の設定が楽になります
-    > ![Azure IoT Hub](./img/eflow-iotedge-owner-connection-string.png 'Azure IoT Hub')  
 1. Windows 10 November 2021 Update (21H2) のインストール  
     https://www.microsoft.com/ja-jp/software-download/windows10/
 
@@ -53,8 +51,8 @@
 
 1. 仮想スイッチの作成  
     Hyper-V マネージャー で **仮想スイッチ - 外部** を作成します  
+    > 複数のネットワークアダプターがある場合はネットワークに接続されている方を選択します      
 ![Windows - Hyper-V - vSwitch](./img/eflow-win10-hyper-v-vswitch.png 'Windows - Hyper-V - vSwitch')  
-    > 複数のネットワークアダプターがある場合はネットワークに接続されている方を選択します
 
 1. EFLOW VM の作成  
     > 仮想スイッチの名前、IPv4 関連の項目は環境に合わせて変更ください  
@@ -68,7 +66,7 @@
     以下のコマンドを実行し、Proxy 経由でインターネット接続が可能なことを確認します  
      > Proxy の設定は環境に合わせて変更ください  
     ```
-    curl -L -x http://192.168.8.199:3128 -o d4iot.zip https://github.com/tahirai-microsoft/Azure-Defender-for-IoT/zipball/master
+    curl -L -x http://192.168.8.199:3128 -o eflow-proxy.zip https://github.com/tahirai-microsoft/eflow-ploxy-jp/zipball/master
     ```
 
 ## 手順:
@@ -192,5 +190,9 @@
     sudo iotedge list
     ```
     Storage Explorer で Azure Blob Storage モジュールにアクセス出来ることを確認します  
+
+    ![Storage Explorer](./img/storage-explorer.png 'Storage Explorer')  
+
+    
 
 
